@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.library.mapper.AdminMapper">
+
+    <!-- 전체 도서 수 -->
+    <select id="countTotalBooks" resultType="long">
+        SELECT COUNT(*) FROM book
+    </select>
+
+    <!-- 전체 회원 수 -->
+    <select id="countTotalUsers" resultType="long">
+        SELECT COUNT(*) FROM users WHERE status = 'ACTIVE'
+    </select>
+
+    <!-- 현재 대여중인 도서 수 -->
+    <select id="countActiveRentals" resultType="long">
+        SELECT COUNT(*) FROM rental WHERE rental_status = 'RENTED'
+    </select>
+
+    <!-- 연체 도서 수 -->
+    <select id="countOverdueRentals" resultType="long">
+        <![CDATA[
+        SELECT COUNT(*)
+        FROM rental
+        WHERE rental_status = 'RENTED'
+        AND due_date < CURDATE()
+        ]]>
+    </select>
+
+    <!-- 최근 대여 내역 -->
+    <select id="findRecentRentals" resultType="com.library.domain.Rental">
+        SELECT 
+            r.rental_id, r.user_id, r.copy_id, r.rental_status,
+            r.rental_date, r.due_date, r.return_date,
+            r.created_at, r.updated_at,
+            u.name AS user_name,
+            b.title AS book_title
+        FROM rental r
+        INNER JOIN users u ON r.user_id = u.user_id
+        INNER JOIN book_copy bc ON r.copy_id = bc.copy_id
+        INNER JOIN book b ON bc.book_id = b.book_id
+        ORDER BY r.created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 전체 회원 목록 -->
+    <select id="findAllUsers" resultType="com.library.domain.User">
+        SELECT 
+            user_id, email, name, phone, role, status,
+            restrict_until, created_at, updated_at
+        FROM users
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 회원 정보 수정 -->
+    <update id="updateUser">
+        UPDATE users
+        SET name = #{name},
+            phone = #{phone},
+            role = #{role},
+            status = #{status},
+            restrict_until = #{restrictUntil},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 전체 대여 내역 -->
+    <select id="findAllRentals" resultType="com.library.domain.Rental">
+        SELECT 
+            r.rental_id, r.user_id, r.copy_id, r.rental_status,
+            r.rental_date, r.due_date, r.return_date,
+            r.created_at, r.updated_at,
+            u.name AS user_name,
+            b.title AS book_title
+        FROM rental r
+        INNER JOIN users u ON r.user_id = u.user_id
+        INNER JOIN book_copy bc ON r.copy_id = bc.copy_id
+        INNER JOIN book b ON bc.book_id = b.book_id
+        ORDER BY r.created_at DESC
+    </select>
+
+</mapper>

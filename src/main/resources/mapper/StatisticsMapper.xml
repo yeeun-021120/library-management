@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.library.mapper.StatisticsMapper">
+
+    <!-- 월별 대여 통계 -->
+    <select id="getMonthlyStatistics" resultType="com.library.dto.MonthlyStatisticsDTO">
+        SELECT
+            month_group AS month,
+            COUNT(*) AS totalRentals,
+            SUM(CASE WHEN return_date IS NOT NULL THEN 1 ELSE 0 END) AS totalReturns,
+            SUM(CASE WHEN rental_status = 'OVERDUE' THEN 1 ELSE 0 END) AS overdueCount,
+            (SELECT COUNT(*) FROM users WHERE DATE_FORMAT(created_at, '%Y-%m') = month_group) AS newMembers,
+            COUNT(DISTINCT user_id) AS activeMembers
+        FROM (
+            SELECT
+                DATE_FORMAT(r.rental_date, '%Y-%m') AS month_group,
+                r.return_date,
+                r.rental_status,
+                r.user_id
+            FROM rental r
+            WHERE r.rental_date BETWEEN #{startDate} AND #{endDate}
+        ) AS rental_data
+        GROUP BY month_group
+        ORDER BY month_group DESC
+    </select>
+
+    <!-- 인기 도서 TOP N -->
+    <select id="getTopBooks" resultType="com.library.dto.BookStatisticsDTO">
+        SELECT
+            b.book_id AS bookId,
+            b.title,
+            b.author,
+            c.category_name AS categoryName,
+            COUNT(r.rental_id) AS rentalCount,
+            (SELECT COUNT(*)
+             FROM book_copy bc2
+             WHERE bc2.book_id = b.book_id
+               AND bc2.status = 'AVAILABLE') AS currentAvailable
+        FROM book b
+        LEFT JOIN book_copy bc ON b.book_id = bc.book_id
+        LEFT JOIN rental r ON bc.copy_id = r.copy_id
+        LEFT JOIN categories c ON b.category_id = c.category_id
+        GROUP BY b.book_id, b.title, b.author, c.category_name
+        ORDER BY rentalCount DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 카테고리별 통계 -->
+    <select id="getCategoryStatistics" resultType="com.library.dto.CategoryStatisticsDTO">
+        SELECT
+            c.category_id AS categoryId,
+            c.category_name AS categoryName,
+            COUNT(DISTINCT b.book_id) AS bookCount,
+            COUNT(r.rental_id) AS rentalCount,
+            CASE
+                WHEN COUNT(DISTINCT b.book_id) > 0
+                THEN ROUND(COUNT(r.rental_id) * 100.0 / COUNT(DISTINCT b.book_id), 2)
+                ELSE 0
+            END AS rentalRate
+        FROM categories c
+        LEFT JOIN book b ON c.category_id = b.category_id
+        LEFT JOIN book_copy bc ON b.book_id = bc.book_id
+        LEFT JOIN rental r ON bc.copy_id = r.copy_id
+        WHERE c.is_active = TRUE
+        GROUP BY c.category_id, c.category_name
+        ORDER BY rentalCount DESC
+    </select>
+
+</mapper>

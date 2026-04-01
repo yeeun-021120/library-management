@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.library.mapper.CategoryMapper">
+
+    <!-- ResultMap -->
+    <resultMap id="categoryResultMap" type="com.library.domain.Category">
+        <id property="categoryId" column="category_id"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="description" column="description"/>
+        <result property="displayOrder" column="display_order"/>
+        <result property="isActive" column="is_active"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 전체 카테고리 목록 조회 (활성화된 것만) -->
+    <select id="findAll" resultMap="categoryResultMap">
+        SELECT 
+            category_id, category_name, description, display_order, 
+            is_active, created_at, updated_at
+        FROM categories
+        WHERE is_active = TRUE
+        ORDER BY display_order ASC, category_name ASC
+    </select>
+
+    <!-- 카테고리 ID로 조회 -->
+    <select id="findById" resultMap="categoryResultMap">
+        SELECT 
+            category_id, category_name, description, display_order, 
+            is_active, created_at, updated_at
+        FROM categories
+        WHERE category_id = #{categoryId}
+    </select>
+
+    <!-- 카테고리 등록 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="categoryId">
+        INSERT INTO categories (
+            category_name, description, display_order, is_active
+        ) VALUES (
+            #{categoryName}, #{description}, #{displayOrder}, #{isActive}
+        )
+    </insert>
+
+    <!-- 카테고리 수정 -->
+    <update id="update">
+        UPDATE categories
+        SET category_name = #{categoryName},
+            description = #{description},
+            display_order = #{displayOrder},
+            is_active = #{isActive},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE category_id = #{categoryId}
+    </update>
+
+    <!-- 카테고리 삭제 (비활성화) -->
+    <update id="delete">
+        UPDATE categories
+        SET is_active = FALSE,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE category_id = #{categoryId}
+    </update>
+
+</mapper>
